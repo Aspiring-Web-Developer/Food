@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+
+
+
+:root {
+  --font-heading: 'Lilita One', cursive;
+  --font-body: 'Nunito', sans-serif;
+}
+
+
+body {
+  font-family: var(--font-body) !important;
+}
