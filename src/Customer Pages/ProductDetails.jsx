@@ -580,7 +580,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-
+import Login from "../Customer Pages/Login";
 const API = import.meta.env.VITE_API_BASE;
 
 // ─── Burst rays (unchanged) ───────────────────────────────────────────────────
@@ -734,7 +734,7 @@ export default function ProductDetails({ onCartAdd }) {
   const [addedFlash, setAddedFlash] = useState(false);
   const [imgKey, setImgKey]         = useState(0);
   const relatedRef = useRef(null);
-
+const [showLogin, setShowLogin] = useState(false);
   // ── Fetch this variant + related from backend ─────────────────────────
   useEffect(() => {
     if (!id) return;
@@ -768,15 +768,20 @@ export default function ProductDetails({ onCartAdd }) {
     navigate(`/product/${variantId}`, { replace: true });
   };
 
-  const handleCartClick = async (e) => {
-    fireCartFly(e);
-    setAddedFlash(true);
-    setTimeout(() => setAddedFlash(false), 1000);
-    await addToCartAPI(product.id, qty);
-    onCartAdd && onCartAdd(product, qty);
-    window.dispatchEvent(new CustomEvent("cart-added"));
-  };
-
+const handleCartClick = async (e) => {
+  // Check login BEFORE animation
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    setShowLogin(true);
+    return;
+  }
+  fireCartFly(e);
+  setAddedFlash(true);
+  setTimeout(() => setAddedFlash(false), 1000);
+  await addToCartAPI(product.id, qty);
+  onCartAdd && onCartAdd(product, qty);
+  window.dispatchEvent(new CustomEvent("cart-added"));
+};
   // ── Loading state ─────────────────────────────────────────────────────
   if (loading || !product) {
     return (
@@ -1031,6 +1036,14 @@ export default function ProductDetails({ onCartAdd }) {
           </div>
         </div>
       </div>
+      <AnimatePresence>
+  {showLogin && (
+    <Login
+      onClose={() => setShowLogin(false)}
+      onLoginSuccess={() => setShowLogin(false)}
+    />
+  )}
+</AnimatePresence>
     </div>
   );
 }

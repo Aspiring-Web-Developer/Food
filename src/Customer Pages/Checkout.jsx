@@ -364,12 +364,23 @@ export function CheckoutModal({ cartSubtotal, onClose, onSuccess }) {
   }
 
   // ── Navigate steps ────────────────────────────────────────────────────
-  function goNext() {
-    if (step === 0) { handleContactNext(); return; }
-    if (step === 1 && !selectedAddrId) { setApiError("Please select or add a delivery address."); return; }
-    if (step === 1 && !deliveryInfo) { setApiError("Please wait — calculating delivery charge."); return; }
-    setErrors({}); setApiError(""); setDirection(1); setStep(s => s + 1);
+function goNext() {
+  if (step === 0) { handleContactNext(); return; }
+  
+  if (step === 1) {
+    if (!selectedAddrId) { setApiError("Please select or add a delivery address."); return; }
+    
+    // ✅ Min order check — before API call
+    if (cartSubtotal < 199) {
+      setApiError(`Minimum order amount is ₹199. Add ₹${(199 - cartSubtotal).toFixed(0)} more to proceed.`);
+      return;
+    }
+    
+    if (!deliveryInfo) { setApiError("Please wait — calculating delivery charge."); return; }
   }
+  
+  setErrors({}); setApiError(""); setDirection(1); setStep(s => s + 1);
+}
 
   function goBack() {
     setErrors({}); setApiError(""); setDirection(-1); setStep(s => s - 1);
@@ -590,7 +601,7 @@ async function handlePay() {
                     </div>
                   )}
 
-                  <Field label="Full Name" icon={User} placeholder="Deepak Sadhasivam"
+                  <Field label="Full Name" icon={User} placeholder="Name"
                     value={name} onChange={e => setName(e.target.value)} error={errors.name} />
                   <Field label="Email Address" icon={Mail} placeholder="you@example.com"
                     value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
@@ -646,29 +657,28 @@ async function handlePay() {
                       ))}
 
                       {/* Delivery charge preview */}
-                      {selectedAddr && (
-                        <div style={{ background: "#F5EFD6", borderRadius: 10,
-                          padding: "10px 14px", marginTop: 8,
-                          fontFamily: "var(--font-body)", fontSize: 13 }}>
-                          {deliveryLoading ? (
-                            <span style={{ color: "#888" }}>Calculating delivery…</span>
-                          ) : deliveryInfo ? (
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ color: "#555" }}>
-                                Delivery ({deliveryInfo.zone})
-                              </span>
-                              <span style={{ fontWeight: 700, color: "#1E5C2A" }}>
-                                {deliveryInfo.delivery_charge === 0
-                                  ? "FREE" : `₹${deliveryInfo.delivery_charge}`}
-                              </span>
-                            </div>
-                          ) : (
-                            <span style={{ color: "#E8192C" }}>
-                              Delivery not available for this pincode
-                            </span>
-                          )}
-                        </div>
-                      )}
+                 {selectedAddr && (
+  <div style={{ background: "#F5EFD6", borderRadius: 10,
+    padding: "10px 14px", marginTop: 8,
+    fontFamily: "var(--font-body)", fontSize: 13 }}>
+    {cartSubtotal < 199 ? (
+      <span style={{ color: "#E8192C" }}>
+        ₹{(199 - cartSubtotal).toFixed(0)} more needed for minimum order (₹199)
+      </span>
+    ) : deliveryLoading ? (
+      <span style={{ color: "#888" }}>Calculating delivery…</span>
+    ) : deliveryInfo ? (
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span style={{ color: "#555" }}>Delivery ({deliveryInfo.zone})</span>
+        <span style={{ fontWeight: 700, color: "#1E5C2A" }}>
+          {deliveryInfo.delivery_charge === 0 ? "FREE" : `₹${deliveryInfo.delivery_charge}`}
+        </span>
+      </div>
+    ) : (
+      <span style={{ color: "#E8192C" }}>Delivery not available for this pincode</span>
+    )}
+  </div>
+)}
                     </>
                   ) : (
                     /* Add new address form */
@@ -709,7 +719,7 @@ async function handlePay() {
                         ))}
                       </div>
 
-                      <Field label="Address Label" icon={FileText} placeholder="e.g. Deepak's Home"
+                      <Field label="Address Label" icon={FileText} placeholder="e.g.  Home"
                         value={newAddr.label} onChange={e => setNewAddr(p => ({ ...p, label: e.target.value }))} />
                       <Field label="Flat / Street / Area" icon={MapPin}
                         placeholder="55b, 9th street Thottathu salai"

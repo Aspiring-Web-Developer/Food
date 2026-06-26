@@ -941,13 +941,13 @@ export default function AdminProducts() {
                     </td>
                     <td style={s.td}>
                       <div style={s.actions}>
-                        <button
+                        {/* <button
                           style={{ ...s.actionBtn, color: "#16a34a" }}
                           title="View"
                           onClick={() => window.open(`${BASE}/api/products/`, "_blank")}
                         >
                           <Eye size={15} />
-                        </button>
+                        </button> */}
                         <button
                           style={{ ...s.actionBtn, color: "#d97706" }}
                           title="Edit"

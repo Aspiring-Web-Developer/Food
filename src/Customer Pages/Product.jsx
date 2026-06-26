@@ -304,6 +304,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Login from "../Customer Pages/Login";
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -413,7 +414,7 @@ function ProductColumn({ product, index, onCartClick, onProductClick }) {
         initial={false}
         animate={hovered ? { x: 0, opacity: 1 } : { x: "-100%", opacity: 0 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        onClick={(e) => { e.stopPropagation(); fireCartFly(e); onCartClick(product); }}
+        onClick={(e) => { e.stopPropagation(); onCartClick(product, e); }}
         className="absolute bottom-0 left-0 right-0 z-20 w-full border-none cursor-pointer flex items-center justify-center gap-2"
         style={{ fontFamily: "var(--font-heading)", fontSize: 13, fontWeight: 900,
           letterSpacing: 2, background: "#111111", color: "#FFD700", padding: "18px 0" }}
@@ -445,7 +446,7 @@ export default function Products() {
   const scrollRef  = useRef(null);
   const titleRef   = useRef(null);
   const titleInView = useInView(titleRef, { once: true });
-
+const [showLogin, setShowLogin] = useState(false);
   // ── Fetch products ────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`${API}/api/products/`)
@@ -470,11 +471,17 @@ export default function Products() {
     return () => el.removeEventListener("wheel", handleWheel);
   }, []);
 
-  const handleCartClick = async (product) => {
-    setActiveBg(product.bg);
-    setTimeout(() => setActiveBg("#e7c400"), 1200);
-    await addToCartAPI(product.id);
-  };
+const handleCartClick = async (product, e) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    setShowLogin(true);
+    return; // fireCartFly never runs
+  }
+  fireCartFly(e); // only runs if logged in
+  setActiveBg(product.bg);
+  setTimeout(() => setActiveBg("#e7c400"), 1200);
+  await addToCartAPI(product.id);
+};
 
   const handleProductClick = (product) => {
     navigate(`/product/${product.id}`);
@@ -577,6 +584,15 @@ export default function Products() {
           </motion.button>
         </div>
       )}
+
+      <AnimatePresence>
+  {showLogin && (
+    <Login
+      onClose={() => setShowLogin(false)}
+      onLoginSuccess={() => setShowLogin(false)}
+    />
+  )}
+</AnimatePresence>
     </section>
   );
 }

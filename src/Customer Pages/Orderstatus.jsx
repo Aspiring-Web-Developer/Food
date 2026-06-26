@@ -752,9 +752,9 @@ export default function OrderStatus() {
             <p style={{ fontFamily: "var(--font-body)", fontSize: 12,
               color: "#888", margin: 0, lineHeight: 1.6 }}>
               Need help? Write to us at{" "}
-              <span style={{ color: "#1E5C2A", fontWeight: 700 }}>support@adhenfoods.com</span>
+              <span style={{ color: "#1E5C2A", fontWeight: 700 }}>adhenfoodsin@gmail.com</span>
               {" "}or call{" "}
-              <span style={{ color: "#1E5C2A", fontWeight: 700 }}>+91 99999 99999</span>
+              <span style={{ color: "#1E5C2A", fontWeight: 700 }}>+91 81489 11559</span>
             </p>
           </div>
         </motion.div>
