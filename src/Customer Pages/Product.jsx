@@ -369,6 +369,9 @@ function ProductColumn({ product, index, onCartClick, onProductClick }) {
   const inView = useInView(ref, { once: true });
   const [hovered, setHovered] = useState(false);
 
+  const isOutOfStock = product.stock_status === "out_of_stock";
+  const isLowStock   = product.stock_status === "low_stock";
+
   return (
     <motion.div
       ref={ref}
@@ -376,8 +379,11 @@ function ProductColumn({ product, index, onCartClick, onProductClick }) {
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.55, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
       className="relative flex flex-col items-center justify-end flex-shrink-0 overflow-hidden"
-      onClick={() => onProductClick(product)}
-      style={{ width: 240, minWidth: 240, height: 480, background: product.bg, scrollSnapAlign: "start" }}
+      onClick={() => !isOutOfStock && onProductClick(product)}
+      style={{ width: 240, minWidth: 240, height: 480, background: product.bg, 
+        scrollSnapAlign: "start",
+        opacity: isOutOfStock ? 0.7 : 1  // dim out of stock
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -385,6 +391,26 @@ function ProductColumn({ product, index, onCartClick, onProductClick }) {
         style={{ fontFamily: "var(--font-heading)", background: "#d0b101", color: "#111" }}>
         {product.tag}
       </div>
+
+      {/* ── Low Stock badge ── */}
+      {isLowStock && (
+        <div className="absolute top-4 right-4 z-10 text-[9px] font-black tracking-[1px] px-2 py-1 rounded"
+          style={{ background: "#FF6B00", color: "#fff", fontFamily: "var(--font-heading)" }}>
+          LOW STOCK
+        </div>
+      )}
+
+      {/* ── Out of Stock overlay ── */}
+      {isOutOfStock && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.55)" }}>
+          <div className="text-white font-black text-sm tracking-widest px-4 py-2 rounded-full"
+            style={{ fontFamily: "var(--font-heading)", background: "rgba(232,25,44,0.9)",
+              border: "2px solid #fff" }}>
+            OUT OF STOCK
+          </div>
+        </div>
+      )}
 
       <motion.div
         animate={hovered ? { y: -20, rotate: -6, scale: 1.08 } : { y: 0, rotate: 0, scale: 1 }}
@@ -410,18 +436,21 @@ function ProductColumn({ product, index, onCartClick, onProductClick }) {
         </p>
       </div>
 
-      <motion.button
-        initial={false}
-        animate={hovered ? { x: 0, opacity: 1 } : { x: "-100%", opacity: 0 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        onClick={(e) => { e.stopPropagation(); onCartClick(product, e); }}
-        className="absolute bottom-0 left-0 right-0 z-20 w-full border-none cursor-pointer flex items-center justify-center gap-2"
-        style={{ fontFamily: "var(--font-heading)", fontSize: 13, fontWeight: 900,
-          letterSpacing: 2, background: "#111111", color: "#FFD700", padding: "18px 0" }}
-      >
-        <ShoppingCart size={16} />
-        ADD TO CART
-      </motion.button>
+      {/* ── Add to Cart button — hidden if out of stock ── */}
+      {!isOutOfStock && (
+        <motion.button
+          initial={false}
+          animate={hovered ? { x: 0, opacity: 1 } : { x: "-100%", opacity: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          onClick={(e) => { e.stopPropagation(); onCartClick(product, e); }}
+          className="absolute bottom-0 left-0 right-0 z-20 w-full border-none cursor-pointer flex items-center justify-center gap-2"
+          style={{ fontFamily: "var(--font-heading)", fontSize: 13, fontWeight: 900,
+            letterSpacing: 2, background: "#111111", color: "#FFD700", padding: "18px 0" }}
+        >
+          <ShoppingCart size={16} />
+          ADD TO CART
+        </motion.button>
+      )}
     </motion.div>
   );
 }

@@ -5,20 +5,7 @@ export default function AdminNavbar() {
     <header style={styles.navbar}>
       {/* Brand / Logo — left side, matches sidebar width */}
       <div style={styles.brand}>
-        {/* Snake/pretzel logo icon placeholder — matches the screenshot's orange icon */}
-        <div style={styles.logoIcon}>
-          {/* <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <circle cx="14" cy="14" r="13" fill="#E8472A" opacity="0.12" />
-            <path
-              d="M8 18 C8 12 12 10 14 14 C16 18 20 16 20 10"
-              stroke="#E8472A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              fill="none"
-            />
-          </svg> */}
-        </div>
-        {/* <span style={styles.brandName}>EVERSTITCH</span> */}
+        <img src="/Png-01.png" alt="Logo" style={{ height: 44, width: "auto", objectFit: "contain" }} />
       </div>
 
       {/* Search bar — center */}
@@ -52,8 +39,15 @@ export default function AdminNavbar() {
         </button>
 
         {/* User avatar + info */}
-
-
+        <div style={styles.userBlock}>
+          <div style={styles.avatar}>
+            <span style={styles.avatarInner}>A</span>
+          </div>
+          <div style={styles.userInfo}>
+            <span style={styles.userName}>Admin</span>
+            <span style={styles.userEmail}>admin@everstitch.com</span>
+          </div>
+        </div>
       </div>
     </header>
   );
@@ -77,7 +71,7 @@ const styles = {
     width: 220,
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     paddingLeft: 20,
     flexShrink: 0,
   },
@@ -85,13 +79,14 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   brandName: {
     fontFamily: "Inter, sans-serif",
     fontWeight: 700,
     fontSize: 15,
     color: "#E8472A",
-    letterSpacing: "0.06em",
+    letterSpacing: "0.08em",
   },
   searchWrapper: {
     flex: 1,
@@ -114,7 +109,6 @@ const styles = {
     color: "#374151",
     fontFamily: "Inter, sans-serif",
     width: "100%",
-    "::placeholder": { color: "#9ca3af" },
   },
   rightSection: {
     display: "flex",
@@ -142,7 +136,6 @@ const styles = {
     width: 38,
     height: 38,
     borderRadius: "50%",
-    overflow: "hidden",
     backgroundColor: "#E8472A",
     display: "flex",
     alignItems: "center",

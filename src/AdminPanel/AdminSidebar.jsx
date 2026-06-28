@@ -1,63 +1,49 @@
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
   ShoppingCart,
   Package,
-  Users,
-  BarChart2,
-  Settings,
   LogOut,
   Menu,
   X,
 } from "lucide-react";
 
-
 const NAV_ITEMS = [
-  // { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { label: "Orders",    icon: ShoppingCart,    path: "/admin/orders" },
-  { label: "Products",  icon: Package,         path: "/admin/products" },
-  // { label: "Customers", icon: Users,           path: "/admin/customers" },
-  // { label: "Analytics", icon: BarChart2,       path: "/admin/analytics" },
-  // { label: "Settings",  icon: Settings,        path: "/admin/settings" },
+  { label: "Orders",   icon: ShoppingCart, path: "/admin/orders" },
+  { label: "Products", icon: Package,      path: "/admin/products" },
 ];
 
 export default function AdminSidebar() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]       = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-const logout = () => {
-  localStorage.removeItem("admin_access_token");
-  localStorage.removeItem("admin_user");
-  navigate("/admin/login", { replace: true });
-};
-  // Track viewport width
+  const logout = () => {
+    localStorage.removeItem("admin_access_token");
+    localStorage.removeItem("admin_user");
+    navigate("/admin/login", { replace: true });
+  };
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (!mobile) setOpen(false); // auto-close drawer state when going back to desktop
+      if (!mobile) setOpen(false);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Close sidebar on route change (mobile)
   useEffect(() => {
     if (isMobile) setOpen(false);
   }, [location.pathname, isMobile]);
-
-  const handleLogout = () => {
-    navigate("/admin/login");
-  };
 
   const sidebarVisible = !isMobile || open;
 
   return (
     <>
-      {/* ── Mobile hamburger button ── */}
+      {/* ── Mobile hamburger ── */}
       {isMobile && (
         <button
           onClick={() => setOpen((v) => !v)}
@@ -70,10 +56,7 @@ const logout = () => {
 
       {/* ── Backdrop (mobile only) ── */}
       {isMobile && open && (
-        <div
-          onClick={() => setOpen(false)}
-          style={styles.backdrop}
-        />
+        <div onClick={() => setOpen(false)} style={styles.backdrop} />
       )}
 
       {/* ── Sidebar ── */}
@@ -81,11 +64,15 @@ const logout = () => {
         style={{
           ...styles.sidebar,
           transform: sidebarVisible ? "translateX(0)" : "translateX(-100%)",
-          // Desktop: always visible, no shadow; Mobile: slide in with shadow
           boxShadow: isMobile && open ? "4px 0 24px rgba(0,0,0,0.10)" : "none",
         }}
       >
-        {/* Nav items — padded below navbar height */}
+        {/* ── Brand header (only visible inside sidebar, aligns with navbar) ── */}
+        <div style={styles.sidebarBrand}>
+          <img src="/Png-01.png" alt="Logo" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+        </div>
+
+        {/* ── Nav items ── */}
         <nav style={styles.nav}>
           {NAV_ITEMS.map(({ label, icon: Icon, path }) => (
             <NavLink
@@ -98,7 +85,6 @@ const logout = () => {
             >
               {({ isActive }) => (
                 <>
-                  {/* Red left indicator strip */}
                   <span
                     style={{
                       ...styles.activeBar,
@@ -127,7 +113,7 @@ const logout = () => {
           ))}
         </nav>
 
-        {/* Logout pinned to bottom */}
+        {/* ── Logout pinned to bottom ── */}
         <button onClick={logout} style={styles.logoutBtn}>
           <LogOut size={20} style={{ color: "#6b7280" }} />
           <span style={styles.navLabel}>Logout</span>
@@ -161,7 +147,6 @@ const styles = {
   sidebar: {
     width: 220,
     backgroundColor: "#ffffff",
-    // Only right border — no top border line
     borderRight: "1px solid #f0f0f0",
     display: "flex",
     flexDirection: "column",
@@ -173,12 +158,35 @@ const styles = {
     zIndex: 200,
     transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
   },
+  /* Brand block inside sidebar — 64px tall to align with navbar */
+  sidebarBrand: {
+    height: 64,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    paddingLeft: 20,
+    borderBottom: "1px solid #f0f0f0",
+    flexShrink: 0,
+  },
+  logoIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  brandName: {
+    fontFamily: "Inter, sans-serif",
+    fontWeight: 700,
+    fontSize: 15,
+    color: "#E8472A",
+    letterSpacing: "0.08em",
+  },
   nav: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    paddingTop: 80, // clears the 64px navbar
+    paddingTop: 12,   // small gap after the brand header
     overflowY: "auto",
   },
   navItem: {
