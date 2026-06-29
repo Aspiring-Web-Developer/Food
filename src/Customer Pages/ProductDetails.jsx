@@ -568,14 +568,6 @@
 
 
 
-
-
-
-
-
-
-
-
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, Star } from "lucide-react";
