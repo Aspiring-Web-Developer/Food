@@ -723,12 +723,12 @@ async function handlePay() {
                       <Field label="Address Label" icon={FileText} placeholder="e.g.  Home"
                         value={newAddr.label} onChange={e => setNewAddr(p => ({ ...p, label: e.target.value }))} />
                       <Field label="Flat / Street / Area" icon={MapPin}
-                        placeholder="55b, 9th street Thottathu salai"
+                        placeholder="Address"
                         value={newAddr.line1}
                         onChange={e => setNewAddr(p => ({ ...p, line1: e.target.value }))}
                         error={errors.line1} />
                       <Field label="Landmark (optional)" icon={Navigation}
-                        placeholder="Near Arun Urology Clinic"
+                        placeholder="Landmark"
                         value={newAddr.line2} onChange={e => setNewAddr(p => ({ ...p, line2: e.target.value }))} />
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                         <Field label="City" icon={Building2} placeholder="Coimbatore"
@@ -744,7 +744,7 @@ async function handlePay() {
                         value={newAddr.state}
                         onChange={e => setNewAddr(p => ({ ...p, state: e.target.value }))}
                         error={errors.state} />
-                      <Field label="Mobile for delivery" icon={Phone} placeholder="7373155787"
+                      <Field label="Mobile for delivery" icon={Phone} placeholder="Number"
                         value={newAddr.phone}
                         onChange={e => setNewAddr(p => ({ ...p, phone: e.target.value.replace(/\D/g,"").slice(0,10) }))}
                         error={errors.addrPhone} />
