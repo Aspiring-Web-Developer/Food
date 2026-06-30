@@ -95,7 +95,7 @@ export default function AdminLogin({ onLoginSuccess }) {
 
           {/* Logo */}
           <div style={s.leftTop}>
-            <img src="/Png-01.png" alt="Adhen Foods" style={{ height: 48, width: "auto", objectFit: "contain" }} />
+            <img src="/Png-01.png" alt="Adhen Foods" style={{ height: 98, width: "auto", objectFit: "contain" }} />
           </div>
 
           {/* Hero text */}
@@ -124,7 +124,7 @@ export default function AdminLogin({ onLoginSuccess }) {
           <div style={s.leftFooter}>
             <a href="#" className="al-left-link">Privacy</a>
             <a href="#" className="al-left-link">Support</a>
-            <a href="#" className="al-left-link">© 2025 Adhen Foods</a>
+            <a href="#" className="al-left-link">© 2026 Adhen Foods</a>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                 <input
                   className="al-input"
                   type="email"
-                  placeholder="adhenfoods.com"
+                  placeholder="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

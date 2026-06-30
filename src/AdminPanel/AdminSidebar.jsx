@@ -69,7 +69,7 @@ export default function AdminSidebar() {
       >
         {/* ── Brand header (only visible inside sidebar, aligns with navbar) ── */}
         <div style={styles.sidebarBrand}>
-          <img src="/Png-01.png" alt="Logo" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+          <img src="/Png-01.png" alt="Logo" style={{ height: 54, width: "auto", objectFit: "contain",marginLeft:"10px",marginTop:"5px" }} />
         </div>
 
         {/* ── Nav items ── */}

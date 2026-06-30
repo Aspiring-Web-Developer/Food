@@ -1,5 +1,5 @@
 
-
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -203,6 +203,7 @@ function FailedX() {
 // ─── Main CheckoutModal ───────────────────────────────────────────────────────
 export function CheckoutModal({ cartSubtotal, onClose, onSuccess }) {
   // ── Profile (prefetched) ─────────────────────────────────────────────
+  const navigate = useNavigate();
   const [profile, setProfile]           = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -937,14 +938,22 @@ async function handlePay() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                  onClick={() => { setResult(null); if (result === "success") onSuccess?.(); else onClose(); }}
-                  style={{ width: "100%", fontFamily: "var(--font-heading)", fontSize: 13,
-                    letterSpacing: 2,
-                    background: result === "success" ? "#E8192C" : "#111",
-                    color: "#fff", border: "none", borderRadius: 50,
-                    padding: "14px 0", cursor: "pointer" }}>
-                  {result === "success" ? "CONTINUE SHOPPING" : "CLOSE"}
-                </motion.button>
+  onClick={() => {
+    setResult(null);
+    if (result === "success") {
+      onSuccess?.();
+      navigate("/orders");
+    } else {
+      onClose();
+    }
+  }}
+  style={{ width: "100%", fontFamily: "var(--font-heading)", fontSize: 13,
+    letterSpacing: 2,
+    background: result === "success" ? "#E8192C" : "#111",
+    color: "#fff", border: "none", borderRadius: 50,
+    padding: "14px 0", cursor: "pointer" }}>
+  {result === "success" ? "CONTINUE SHOPPING" : "CLOSE"}
+</motion.button>
                 {result === "failed" && (
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                     onClick={() => { setResult(null); setApiError(""); }}

@@ -14,6 +14,9 @@ import OrderStatus    from "./Customer Pages/Orderstatus";
 import { CheckoutModal }  from "./Customer Pages/Checkout";
 import OrderList      from "./Customer Pages/OrderList";
 import ScrollToTop    from "./components/ScrollToTop";
+import PrivacyPolicy   from "./Customer Pages/PrivacyPolicy";
+import TermsCondition  from "./Customer Pages/TermsCondition";
+
 
 // Admin
 import AdminLayout      from "./AdminPanel/Adminlayout";
@@ -42,6 +45,8 @@ export default function App() {
           <Route path="/orders/:id"  element={<OrderStatus />} />
           <Route path="/checkout"    element={<CheckoutModal />} />
           <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+<Route path="/terms-condition" element={<TermsCondition />} />
         </Route>
 
         {/* Admin login — public */}

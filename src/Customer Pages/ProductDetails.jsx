@@ -569,7 +569,7 @@
 
 
 import { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence,useScroll, useTransform, useSpring } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import Login from "../Customer Pages/Login";
@@ -577,22 +577,57 @@ const API = import.meta.env.VITE_API_BASE;
 
 // ─── Burst rays (unchanged) ───────────────────────────────────────────────────
 function BurstRays({ light, dark }) {
-  const count = 24;
+  const count = 22;
+  const cx = 500, cy = 500;
+  const innerR = 70;
+  const outerR = 510;
+
   return (
-    <svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"
+    <svg
+      viewBox="0 0 1000 1000"
+      xmlns="http://www.w3.org/2000/svg"
       className="absolute pointer-events-none"
-      style={{ width: "200%", height: "200%", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}>
+      style={{ width: "220%", height: "220%", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+    >
       {Array.from({ length: count }).map((_, i) => {
         const angle = (i / count) * 360;
-        const rad   = (angle * Math.PI) / 180;
-        const x1 = 500 + Math.cos(rad) * 60,  y1 = 500 + Math.sin(rad) * 60;
-        const x2 = 500 + Math.cos(rad) * 520, y2 = 500 + Math.sin(rad) * 520;
-        const len  = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-        const wide = i % 3 === 0;
+        const rad = (angle * Math.PI) / 180;
+        const x1 = cx + Math.cos(rad) * innerR;
+        const y1 = cy + Math.sin(rad) * innerR;
+        const x2 = cx + Math.cos(rad) * outerR;
+        const y2 = cy + Math.sin(rad) * outerR;
+        const perpRad = rad + Math.PI / 2;
+        const curveMag = 60 + (i % 4) * 22;
+        const cpX = (x1 + x2) / 2 + Math.cos(perpRad) * curveMag;
+        const cpY = (y1 + y2) / 2 + Math.sin(perpRad) * curveMag;
+        const isAccent = i % 4 === 0;
         return (
-          <rect key={i} x={-(wide?14:7)} y={0} width={wide?28:14} height={len} rx={6}
-            fill={i%2===0 ? light : dark} opacity={wide?0.55:0.28}
-            transform={`translate(${x1},${y1}) rotate(${angle+90})`} />
+          <path key={i}
+            d={`M ${x1} ${y1} Q ${cpX} ${cpY} ${x2} ${y2}`}
+            stroke={i % 2 === 0 ? light : dark}
+            strokeWidth={isAccent ? 2.8 : 1.4}
+            strokeLinecap="round" fill="none"
+            opacity={isAccent ? 0.55 : 0.28}
+          />
+        );
+      })}
+      {Array.from({ length: count }).map((_, i) => {
+        const angle = ((i + 0.5) / count) * 360;
+        const rad = (angle * Math.PI) / 180;
+        const x1 = cx + Math.cos(rad) * (innerR + 30);
+        const y1 = cy + Math.sin(rad) * (innerR + 30);
+        const x2 = cx + Math.cos(rad) * (outerR * 0.75);
+        const y2 = cy + Math.sin(rad) * (outerR * 0.75);
+        const perpRad = rad - Math.PI / 2;
+        const curveMag = 40 + (i % 3) * 18;
+        const cpX = (x1 + x2) / 2 + Math.cos(perpRad) * curveMag;
+        const cpY = (y1 + y2) / 2 + Math.sin(perpRad) * curveMag;
+        return (
+          <path key={`b-${i}`}
+            d={`M ${x1} ${y1} Q ${cpX} ${cpY} ${x2} ${y2}`}
+            stroke={i % 2 === 0 ? light : dark}
+            strokeWidth={0.9} strokeLinecap="round" fill="none" opacity={0.18}
+          />
         );
       })}
     </svg>
@@ -679,7 +714,7 @@ function RelatedCard({ product, onNavigate }) {
       initial={{ opacity:0, y:40 }} whileInView={{ opacity:1, y:0 }}
       viewport={{ once:true }} transition={{ duration:0.45, ease:[0.22,1,0.36,1] }}
       className="relative flex flex-col items-center overflow-hidden cursor-pointer flex-shrink-0"
-      style={{ width:200, minWidth:200, height:300, background:product.bg,
+      style={{ width:180, minWidth:180, height:300, background:product.bg,marginLeft:"5px",
         borderRadius:16, boxShadow:"0 8px 32px rgba(0,0,0,0.22)" }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       onClick={() => onNavigate(product.id)}
@@ -718,8 +753,15 @@ function RelatedCard({ product, onNavigate }) {
 export default function ProductDetails({ onCartAdd }) {
   const { id }     = useParams();  // now a variant UUID from the URL
   const navigate   = useNavigate();
+  const { scrollY } = useScroll();
+  const rawRotate        = useTransform(scrollY, [0, 900], [0, 40]);
+  const burstRotate      = useSpring(rawRotate, { stiffness: 15, damping: 14 });
+  const rawScale         = useTransform(scrollY, [0, 600], [1, 1.3]);
+  const burstScrollScale = useSpring(rawScale, { stiffness: 18, damping: 16 });
 
   const [product, setProduct]       = useState(null);
+const isOutOfStock = product?.stock_status === "out_of_stock";
+const isLowStock   = product?.stock_status === "low_stock";
   const [related, setRelated]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [qty, setQty]               = useState(1);
@@ -742,18 +784,55 @@ const [showLogin, setShowLogin] = useState(false);
       .catch(() => setLoading(false));
   }, [id]);
 
-  useEffect(() => {
-    const el = relatedRef.current;
-    if (!el) return;
-    const handleWheel = (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        el.scrollBy({ left: e.deltaY * 2, behavior: "smooth" });
-      }
-    };
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, []);
+useEffect(() => {
+  const el = relatedRef.current;
+  if (!el) return;
+
+  // existing wheel → horizontal scroll
+  const handleWheel = (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY * 2, behavior: "smooth" });
+    }
+  };
+  el.addEventListener("wheel", handleWheel, { passive: false });
+
+  // NEW: click-and-drag scrolling for mouse users
+  let isDown = false;
+  let startX = 0;
+  let scrollLeftStart = 0;
+
+  const onPointerDown = (e) => {
+    isDown = true;
+    el.classList.add("dragging");
+    startX = e.pageX - el.offsetLeft;
+    scrollLeftStart = el.scrollLeft;
+  };
+  const onPointerLeaveOrUp = () => {
+    isDown = false;
+    el.classList.remove("dragging");
+  };
+  const onPointerMove = (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX) * 1.2; // drag speed multiplier
+    el.scrollLeft = scrollLeftStart - walk;
+  };
+
+  el.addEventListener("mousedown", onPointerDown);
+  el.addEventListener("mouseleave", onPointerLeaveOrUp);
+  el.addEventListener("mouseup", onPointerLeaveOrUp);
+  el.addEventListener("mousemove", onPointerMove);
+
+  return () => {
+    el.removeEventListener("wheel", handleWheel);
+    el.removeEventListener("mousedown", onPointerDown);
+    el.removeEventListener("mouseleave", onPointerLeaveOrUp);
+    el.removeEventListener("mouseup", onPointerLeaveOrUp);
+    el.removeEventListener("mousemove", onPointerMove);
+  };
+}, []);
 
   const goTo = (variantId) => {
     setImgKey(k => k + 1);
@@ -761,7 +840,7 @@ const [showLogin, setShowLogin] = useState(false);
   };
 
 const handleCartClick = async (e) => {
-  // Check login BEFORE animation
+  if (isOutOfStock) return;
   const token = localStorage.getItem("access_token");
   if (!token) {
     setShowLogin(true);
@@ -798,16 +877,30 @@ const handleCartClick = async (e) => {
         style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
       >
         {/* Burst */}
-        <div className="absolute inset-0 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div key={`burst-${product.id}`}
-              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
-              style={{ width: "100%", height: "100%", position: "absolute" }}>
-              <BurstRays light={product.burstLight} dark={product.burstDark} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        {/* Burst */}
+<div className="absolute inset-0 overflow-hidden">
+  <AnimatePresence mode="wait">
+    <motion.div key={`burst-${product.id}`}
+      initial={{ opacity: 0, rotate: -8, scale: 0.85 }}
+      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.1 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        rotate: burstRotate, scale: burstScrollScale,
+        width: "100%", height: "100%", position: "absolute", transformOrigin: "center center",
+      }}>
+      <motion.div
+        style={{ width: "100%", height: "100%", position: "absolute" }}
+        animate={{ rotate: [0, 360], scale: [1, 1.08, 1] }}
+        transition={{
+          rotate: { duration: 28, repeat: Infinity, ease: "linear" },
+          scale:  { duration: 5, repeat: Infinity, ease: "easeInOut", repeatType: "mirror" },
+        }}>
+        <BurstRays light={product.burstLight} dark={product.burstDark} />
+      </motion.div>
+    </motion.div>
+  </AnimatePresence>
+</div>
 
         {/* Back button */}
         <motion.button initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
@@ -870,6 +963,19 @@ const handleCartClick = async (e) => {
                 style={{ fontFamily: "var(--font-heading)", background: "#FFD700", color: "#111" }}>
                 {product.tag}
               </div>
+              {isLowStock && (
+              <div className="inline-block self-start text-[10px] font-black tracking-[1px] px-3 py-1.5 rounded"
+                style={{ background: "#FF6B00", color: "#fff", fontFamily: "var(--font-heading)" }}>
+                LOW STOCK
+              </div>
+            )}
+
+            {isOutOfStock && (
+              <div className="inline-block self-start text-[10px] font-black tracking-[1px] px-3 py-1.5 rounded"
+                style={{ background: "rgba(232,25,44,0.9)", color: "#fff", fontFamily: "var(--font-heading)" }}>
+                OUT OF STOCK
+              </div>
+            )}
 
               <h1 className="font-black leading-none text-white m-0"
                 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(38px,6vw,72px)",
@@ -928,19 +1034,22 @@ const handleCartClick = async (e) => {
               </div>
 
               <motion.button
-                whileHover={{ scale: 1.04, boxShadow: "0 12px 40px rgba(0,0,0,0.35)" }}
-                whileTap={{ scale: 0.97 }}
-                animate={addedFlash ? { scale: [1, 1.06, 1] } : {}}
-                onClick={handleCartClick}
-                className="flex items-center justify-center gap-3 border-none cursor-pointer rounded-full"
-                style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 900,
-                  letterSpacing: 2, padding: "18px 0", width: "100%",
-                  background: addedFlash ? "#22c55e" : "#111",
-                  color: addedFlash ? "#fff" : "#FFD700",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.3)", transition: "background 0.3s" }}>
-                <ShoppingCart size={20} />
-                {addedFlash ? "ADDED! ✓" : `ADD TO CART · ${product.price}`}
-              </motion.button>
+  whileHover={!isOutOfStock ? { scale: 1.04, boxShadow: "0 12px 40px rgba(0,0,0,0.35)" } : {}}
+  whileTap={!isOutOfStock ? { scale: 0.97 } : {}}
+  animate={addedFlash ? { scale: [1, 1.06, 1] } : {}}
+  onClick={handleCartClick}
+  disabled={isOutOfStock}
+  className="flex items-center justify-center gap-3 border-none rounded-full"
+  style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 900,
+    letterSpacing: 2, padding: "18px 0", width: "100%",
+    cursor: isOutOfStock ? "not-allowed" : "pointer",
+    background: isOutOfStock ? "#555" : addedFlash ? "#22c55e" : "#111",
+    color: isOutOfStock ? "#aaa" : addedFlash ? "#fff" : "#FFD700",
+    opacity: isOutOfStock ? 0.7 : 1,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.3)", transition: "background 0.3s" }}>
+  <ShoppingCart size={20} />
+  {isOutOfStock ? "OUT OF STOCK" : addedFlash ? "ADDED! ✓" : `ADD TO CART · ${product.price}`}
+</motion.button>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1007,14 +1116,38 @@ const handleCartClick = async (e) => {
             Related Products
           </motion.h2>
 
-          <div className="relative">
-            <div ref={relatedRef} className="flex gap-4 overflow-x-auto pb-4"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+{/* <div className="relative">
+  <div ref={relatedRef} className="flex gap-4 overflow-x-auto pb-4"
+    style={{
+      scrollbarWidth: "none",
+      msOverflowStyle: "none",
+      scrollSnapType: "x mandatory",
+      paddingRight: 24,
+    }}>
+    {related.map(p => (
+      <div key={p.id} style={{ scrollSnapAlign: "start" }}>
+        <RelatedCard product={p} onNavigate={goTo} />
+      </div>
+    ))}
+  </div>
+</div> */}
+
+          <div
+  ref={relatedRef}
+  className="flex gap-4 overflow-x-auto pb-4"
+  style={{
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    cursor: "grab",
+    userSelect: "none",
+  }}
+>
+            
               {related.map(p => (
                 <RelatedCard key={p.id} product={p} onNavigate={goTo} />
               ))}
             </div>
-          </div>
+          
 
           <div className="flex justify-center" style={{ marginTop: 72, paddingBottom: 100 }}>
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}

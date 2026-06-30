@@ -635,23 +635,27 @@ export default function Home() {
           whileHover={{ scale: 1.12, backgroundColor: "rgba(232,25,44,1)" }}
           whileTap={{ scale: 0.9 }}
           onClick={() => changeSlide(dir)}
-          className="absolute top-1/2 -translate-y-1/2 z-30 flex items-center justify-center border-none cursor-pointer shadow-2xl"
-          style={{
-            [dir === -1 ? "left" : "right"]: 18,
-            width: 52, height: 52,
-            borderRadius: "50%",
-            background: "rgba(0,0,0,0.72)",
-            color: "#fff",
-            fontSize: 28, fontWeight: 900,
-            transition: "background 0.2s",
-            lineHeight: 1,
-            pointerEvents: "all",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            touchAction: "manipulation",
-          }}
+         className="absolute z-30 flex items-center justify-center border-none cursor-pointer shadow-2xl"
+style={{
+  [dir === -1 ? "left" : "right"]: 19,
+  top: "45%",              // ← was top-1/2 (50%), nudge this number
+  transform: "translateY(-50%)",
+  width: 52, height: 52,
+  borderRadius: "50%",
+  background: "rgba(0,0,0,0.72)",
+  color: "#fff",
+  fontSize: 28, fontWeight: 900,
+  transition: "background 0.2s",
+  lineHeight: 1,
+  pointerEvents: "all",
+  userSelect: "none",
+  WebkitUserSelect: "none",
+  touchAction: "manipulation",
+}}
         >
-          {dir === -1 ? "‹" : "›"}
+          <span style={{ display: "inline-block", transform: "translateY(-2px)" }}>
+  {dir === -1 ? "‹" : "›"}
+</span>
         </motion.button>
       ))}
 

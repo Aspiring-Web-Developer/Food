@@ -853,7 +853,7 @@ export default function OrderList() {
 
   const PERKS = [
     { icon: PackageCheck, label: "100% Natural" },
-    { icon: Truck,        label: "Free above ₹299" },
+    { icon: Truck,        label: "Fast" },
     { icon: ShieldCheck,  label: "Secure Checkout" },
   ];
 
