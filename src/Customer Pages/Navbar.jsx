@@ -925,7 +925,7 @@ export default function Navbar({ onCartOpen }) {
             title="Registered Trademark"
             style={{ marginTop: 6 }}
           >
-            <RiRegisteredLine size={18}  color="#ff0000" strokeWidth={1.2} />
+            <RiRegisteredLine size={18}  color="#000000" strokeWidth={1.2} />
           </motion.span>
         </div>
 
