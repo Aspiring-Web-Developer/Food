@@ -396,8 +396,7 @@ function BurstRays({ light, dark }) {
 }
 
 function buildSlides(data) {
-  console.log("[buildSlides] raw data sample:", JSON.stringify(data[0], null, 2));
-  console.log("[buildSlides] total items from API:", data.length);
+
 
   // Dedupe by `id` (not name) — name-based dedup was killing all slides
   const seen = new Set();
@@ -418,7 +417,7 @@ function buildSlides(data) {
       imgSrc:     v.imgSrc     || v.image || v.image_url || "",
     }));
 
-  console.log("[buildSlides] built slides:", result.length, result.map(s => s.label));
+  // console.log("[buildSlides] built slides:", result.length, result.map(s => s.label));
   return result;
 }
 

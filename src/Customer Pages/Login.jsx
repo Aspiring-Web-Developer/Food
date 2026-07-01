@@ -83,6 +83,7 @@ function OtpInput({ value, onChange }) {
             color: "#fff", fontSize: 22, fontWeight: 700, textAlign: "center",
             outline: "none", transition: "border-color 0.2s, background 0.2s",
             caretColor: "#FFD700",
+            fontFamily: "var(--font-body)",
           }}
         />
       ))}
@@ -238,6 +239,7 @@ export default function Login({ onClose, onLoginSuccess }) {
           background: "#111", borderRadius: 24, overflow: "hidden",
           boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.12)",
           pointerEvents: "all", position: "relative",
+          fontFamily: "var(--font-body)", 
         }}>
 
           {/* ── Yellow top band ── */}
@@ -280,7 +282,7 @@ export default function Login({ onClose, onLoginSuccess }) {
                 {step === "email" && (
                   <>
                     <h2 style={{ fontSize: "clamp(28px,6vw,40px)", color: "#111", margin: 0,
-                      letterSpacing: -1, lineHeight: 1 }}>Login</h2>
+                      letterSpacing: -1, lineHeight: 1,fontFamily: "var(--font-heading)" }}>Login</h2>
                     <p style={{ fontSize: 13, color: "#6B4F00", margin: "6px 0 0" }}>
                       Enter your email to get started
                     </p>
@@ -289,7 +291,7 @@ export default function Login({ onClose, onLoginSuccess }) {
                 {step === "otp" && (
                   <>
                     <h2 style={{ fontSize: "clamp(26px,6vw,38px)", color: "#111", margin: 0,
-                      letterSpacing: -1, lineHeight: 1 }}>Check Your Email</h2>
+                      letterSpacing: -1, lineHeight: 1,fontFamily: "var(--font-heading)" }}>Check Your Email</h2>
                     <p style={{ fontSize: 13, color: "#6B4F00", margin: "6px 0 0" }}>
                       OTP sent to {email}
                     </p>
@@ -298,7 +300,7 @@ export default function Login({ onClose, onLoginSuccess }) {
                 {step === "done" && (
                   <>
                     <h2 style={{ fontSize: "clamp(26px,6vw,38px)", color: "#111", margin: 0,
-                      letterSpacing: -1, lineHeight: 1 }}>
+                      letterSpacing: -1, lineHeight: 1,fontFamily: "var(--font-heading)" }}>
                       {isNewUser ? "Welcome!" : "Welcome Back!"}
                     </h2>
                     <p style={{ fontSize: 13, color: "#6B4F00", margin: "6px 0 0" }}>
@@ -347,6 +349,7 @@ export default function Login({ onClose, onLoginSuccess }) {
                     style={{
                       border: "none", outline: "none", background: "transparent",
                       fontSize: 14, color: "#fff", width: "100%", padding: "14px 0",
+                      fontFamily: "var(--font-body)", 
                     }}
                   />
                 </div>

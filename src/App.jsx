@@ -24,6 +24,7 @@ import AdminGuard       from "./AdminPanel/AdminGuard";
 import AdminLoginPage   from "./AdminPanel/AdminLoginPage";
 import AdminProducts    from "./AdminPanel/AdminProducts";
 import AdminOrders      from "./AdminPanel/AdminOrders";
+import AllProducts from "./Customer Pages/AllProducts";
 
 const AdminDashboard = () => <div style={{ fontSize: 24, fontWeight: 700 }}>Dashboard</div>;
 const AdminCustomers = () => <div style={{ fontSize: 24, fontWeight: 700 }}>Customers</div>;
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/orders/:id"  element={<OrderStatus />} />
           <Route path="/checkout"    element={<CheckoutModal />} />
           <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/products" element={<AllProducts />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 <Route path="/terms-condition" element={<TermsCondition />} />
         </Route>

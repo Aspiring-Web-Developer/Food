@@ -602,7 +602,7 @@ const handleCartClick = async (product, e) => {
       {!loading && productCount > 0 && (
         <div className="flex justify-center py-14" style={{ background: "#F5EFD6" }}>
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-            onClick={() => products[0] && navigate(`/product/${products[0].id}`)}
+            onClick={() => navigate("/products")}
             className="font-black tracking-widest text-white px-14 py-4 rounded-full border-none cursor-pointer"
             style={{ fontFamily: "var(--font-heading)", fontSize: 14, background: "#E8192C",
               letterSpacing: 2, boxShadow: "0 8px 32px rgba(232,25,44,0.32)" }}>

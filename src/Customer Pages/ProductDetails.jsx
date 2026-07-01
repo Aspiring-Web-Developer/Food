@@ -567,7 +567,6 @@
 
 
 
-
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence,useScroll, useTransform, useSpring } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, Star } from "lucide-react";
@@ -1116,42 +1115,26 @@ const handleCartClick = async (e) => {
             Related Products
           </motion.h2>
 
-{/* <div className="relative">
-  <div ref={relatedRef} className="flex gap-4 overflow-x-auto pb-4"
-    style={{
-      scrollbarWidth: "none",
-      msOverflowStyle: "none",
-      scrollSnapType: "x mandatory",
-      paddingRight: 24,
-    }}>
-    {related.map(p => (
-      <div key={p.id} style={{ scrollSnapAlign: "start" }}>
-        <RelatedCard product={p} onNavigate={goTo} />
-      </div>
-    ))}
-  </div>
-</div> */}
-
           <div
-  ref={relatedRef}
-  className="flex gap-4 overflow-x-auto pb-4"
-  style={{
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    cursor: "grab",
-    userSelect: "none",
-  }}
->
-            
-              {related.map(p => (
-                <RelatedCard key={p.id} product={p} onNavigate={goTo} />
-              ))}
-            </div>
-          
+            ref={relatedRef}
+            className="flex gap-4 overflow-x-auto pb-4"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              cursor: "grab",
+              userSelect: "none",
+              touchAction: "pan-x",       // ← only allow horizontal touch panning here
+              overscrollBehavior: "contain", // ← stop the scroll chaining into the page
+            }}
+          >
+            {related.map(p => (
+              <RelatedCard key={p.id} product={p} onNavigate={goTo} />
+            ))}
+          </div>
 
           <div className="flex justify-center" style={{ marginTop: 72, paddingBottom: 100 }}>
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/products")}
               className="font-black tracking-widest text-white px-14 py-4 rounded-full border-none cursor-pointer"
               style={{ fontFamily: "var(--font-heading)", fontSize: 14,
                 background: "#E8192C", letterSpacing: 2,
