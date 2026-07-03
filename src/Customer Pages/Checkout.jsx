@@ -372,10 +372,10 @@ function goNext() {
     if (!selectedAddrId) { setApiError("Please select or add a delivery address."); return; }
     
     // ✅ Min order check — before API call
-    if (cartSubtotal < 199) {
-      setApiError(`Minimum order amount is ₹199. Add ₹${(199 - cartSubtotal).toFixed(0)} more to proceed.`);
-      return;
-    }
+    // if (cartSubtotal < 199) {
+    //   setApiError(`Minimum order amount is ₹199. Add ₹${(199 - cartSubtotal).toFixed(0)} more to proceed.`);
+    //   return;
+    // }
     
     if (!deliveryInfo) { setApiError("Please wait — calculating delivery charge."); return; }
   }
@@ -662,9 +662,9 @@ async function handlePay() {
   <div style={{ background: "#F5EFD6", borderRadius: 10,
     padding: "10px 14px", marginTop: 8,
     fontFamily: "var(--font-body)", fontSize: 13 }}>
-    {cartSubtotal < 199 ? (
+    {cartSubtotal < 1 ? (
       <span style={{ color: "#E8192C" }}>
-        ₹{(199 - cartSubtotal).toFixed(0)} more needed for minimum order (₹199)
+        ₹{(1 - cartSubtotal).toFixed(0)} more needed for minimum order (₹1)
       </span>
     ) : deliveryLoading ? (
       <span style={{ color: "#888" }}>Calculating delivery…</span>
