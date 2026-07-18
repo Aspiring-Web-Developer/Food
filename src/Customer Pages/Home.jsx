@@ -710,20 +710,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
 
