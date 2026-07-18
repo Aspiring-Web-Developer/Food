@@ -1088,8 +1088,8 @@ const handleCartClick = async (e) => {
           <div className="grid md:grid-cols-2 gap-8">
             {[
               { title: "Description",    content: product.desc },
-              { title: "Nutrition Facts", content: "Each 40g serving contains approx. 190 kcal, 3g protein, 10g fat, and 22g carbohydrates. 100% natural flavours, no artificial colours." },
-              { title: "Ingredients",    content: "Lotus seeds (Makhana), Vegetable oil, Salt, Natural flavour extracts. Contains no preservatives, artificial colours or MSG." },
+              // { title: "Nutrition Facts", content: "Each 40g serving contains approx. 190 kcal, 3g protein, 10g fat, and 22g carbohydrates. 100% natural flavours, no artificial colours." },
+              // { title: "Ingredients",    content: "Lotus seeds (Makhana), Vegetable oil, Salt, Natural flavour extracts. Contains no preservatives, artificial colours or MSG." },
               { title: "Why Makhana?",   content: "Lotus seeds are a superfood — high in protein, low in calories, and packed with antioxidants. The perfect guilt-free snack that's as nutritious as it is delicious." },
             ].map((item, i) => (
               <motion.div key={item.title}
