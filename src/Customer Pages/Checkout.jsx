@@ -443,7 +443,7 @@ async function handlePay() {
     description: "Makhana Order",
     order_id:    orderData.razorpay_order_id,
     prefill:     { name: orderData.customer_name, email, contact: orderData.phone },
-    theme:       { color: "#E8192C" },
+    theme:       { color: "#FFD700" },
 
     handler: async (response) => {
       try {

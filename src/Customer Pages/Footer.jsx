@@ -390,10 +390,10 @@ export default function Footer() {
   const navigate = useNavigate();
 
   const socials = [
-    { Icon: Share2, href: "#" },
-    { Icon: MessageCircle, href: "#" },
-    { Icon: Play, href: "#" },
-    { Icon: Camera, href: "#" },
+    // { Icon: Share2, href: "#" },
+    // { Icon: MessageCircle, href: "#" },
+    // { Icon: Play, href: "#" },
+    // { Icon: Camera, href: "#" },
   ];
 
   return (

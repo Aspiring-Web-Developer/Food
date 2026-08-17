@@ -912,6 +912,7 @@ export default function Navbar({ onCartOpen }) {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3">
         {/* Logo + Registered trademark badge */}
+        <a href="https://adhenfoods.com">
         <div
           onClick={() => scrollTo("Home")}
           className="cursor-pointer flex items-start gap-1"
@@ -928,6 +929,7 @@ export default function Navbar({ onCartOpen }) {
             <RiRegisteredLine size={18}  color="#000000" strokeWidth={1.2} />
           </motion.span>
         </div>
+        </a>
 
         {/* Right side */}
         <div className="flex items-center gap-3" style={{ zIndex: 60, position: "relative"}}>

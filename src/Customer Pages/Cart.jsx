@@ -630,7 +630,7 @@ import Login from "../Customer Pages/Login";
 const API = import.meta.env.VITE_API_BASE;
 
 const PERKS = [
-  { icon: PackageCheck, label: "100% Natural" },
+  // { icon: PackageCheck, label: "100% Natural" },
   // { icon: Truck,        label: "Free delivery available" },
   { icon: ShieldCheck,  label: "Secure Checkout" },
 ];
