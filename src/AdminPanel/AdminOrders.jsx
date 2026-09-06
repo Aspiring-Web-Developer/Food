@@ -305,9 +305,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ShoppingBag, CheckCircle2, Truck, Clock,
   Eye, Pencil, Trash2, ArrowUpRight,
-  TrendingUp, TrendingDown, RefreshCw, AlertCircle, X,
+  TrendingUp, TrendingDown, RefreshCw, AlertCircle, X, Copy, Check,
 } from "lucide-react";
-
 const BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
 // ── auth helpers ─────────────────────────────────────────────
@@ -348,6 +347,37 @@ const PAYMENT_COLOR = {
   pending:  "#d97706",
   refunded: "#6b7280",
 };
+
+
+function CopyBtn({ getText }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(getText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      alert("Copy failed");
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title="Copy"
+      style={{
+        background: "none", border: "none", cursor: "pointer",
+        padding: 2, marginLeft: 6, display: "inline-flex",
+        alignItems: "center", verticalAlign: "middle",
+        color: copied ? "#16a34a" : "#9ca3af",
+      }}
+    >
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+    </button>
+  );
+}
 
 // ── Order Detail Modal ────────────────────────────────────────
 function OrderDetailModal({ order, onClose, onStatusSave }) {
@@ -400,7 +430,11 @@ function OrderDetailModal({ order, onClose, onStatusSave }) {
 
             {/* Customer */}
             <div style={m.section}>
-              <p style={m.sLabel}>Customer</p>
+              <p style={m.sLabel}>Customer    <CopyBtn
+      getText={() =>
+        `${order.customer_name}\n${order.phone}${order.alt_phone ? ` / ${order.alt_phone}` : ""}\n${order.user_email ?? ""}`
+      }
+    /></p>
               <p style={m.value}>{order.customer_name}</p>
               <p style={m.muted}>{order.user_email}</p>
               <p style={m.muted}>📞 {order.phone}{order.alt_phone ? ` / ${order.alt_phone}` : ""}</p>
@@ -408,7 +442,11 @@ function OrderDetailModal({ order, onClose, onStatusSave }) {
 
             {/* Address */}
             <div style={m.section}>
-              <p style={m.sLabel}>Delivery Address</p>
+              <p style={m.sLabel}>Delivery Address     <CopyBtn
+      getText={() =>
+        `${order.address_line1}${order.address_line2 ? `, ${order.address_line2}` : ""}\n${order.city}, ${order.state} – ${order.pincode}\nZone: ${order.delivery_zone}`
+      }
+    /></p>
               <p style={m.value}>
                 {order.address_line1}{order.address_line2 ? `, ${order.address_line2}` : ""}
               </p>
@@ -418,7 +456,13 @@ function OrderDetailModal({ order, onClose, onStatusSave }) {
 
             {/* Items */}
             <div style={m.section}>
-              <p style={m.sLabel}>Order Items</p>
+              <p style={m.sLabel}>Order Items     <CopyBtn
+      getText={() =>
+        order.items
+          ?.map((item) => `${item.product_name} (${item.weight}) x${item.quantity} - ₹${item.line_total}`)
+          .join("\n")
+      }
+    /></p>
               {order.items?.map((item) => (
                 <div key={item.id} style={m.itemRow}>
                   <span style={m.itemName}>{item.product_name} ({item.weight})</span>

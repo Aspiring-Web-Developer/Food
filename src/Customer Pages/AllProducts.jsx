@@ -159,7 +159,7 @@ function ProductCard({ product, index, qty, onQtyChange, onCartClick, onNavigate
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.9 }}
             disabled={isOutOfStock}
-            onClick={() => onQtyChange(product.id, Math.max(1, qty - 1))}
+            onClick={() => onQtyChange(product.id, Math.max(0, qty - 1))}
             className="text-white font-black text-sm w-6 h-6 flex items-center justify-center rounded-full border-none cursor-pointer"
             style={{ background: "rgba(255,255,255,0.15)" }}
           >
@@ -272,8 +272,8 @@ export default function AllProducts() {
     gridTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const getQty = (id) => qtyMap[id] || 1;
-  const setQty = (id, val) => setQtyMap((m) => ({ ...m, [id]: val }));
+const getQty = (id) => qtyMap[id] ?? 0;
+const setQty = (id, val) => setQtyMap((m) => ({ ...m, [id]: Math.max(0, val) }));
 
   const handleCartClick = async (product, qty, e) => {
     const token = localStorage.getItem("access_token");

@@ -62,6 +62,17 @@ function OtpInput({ value, onChange }) {
     if (val && idx < 5) inputs.current[idx + 1]?.focus();
   };
 
+  const handlePaste = (e, idx) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    onChange(pasted.padEnd(0, "")); // keep as-is length
+    const filled = pasted.split("");
+    onChange(filled.join(""));
+    const nextFocus = Math.min(filled.length, 5);
+    inputs.current[nextFocus]?.focus();
+  };
+
   return (
     <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
       {Array.from({ length: 6 }).map((_, i) => (
@@ -72,6 +83,7 @@ function OtpInput({ value, onChange }) {
           value={digits[i] || ""}
           onChange={(e) => handleChange(e, i)}
           onKeyDown={(e) => handleKey(e, i)}
+          onPaste={(e) => handlePaste(e, i)}
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: i * 0.06, type: "spring", stiffness: 400, damping: 20 }}
