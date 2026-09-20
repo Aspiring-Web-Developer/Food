@@ -14,8 +14,8 @@
 // const API = import.meta.env.VITE_API_BASE;
 
 // const PERKS = [
-//   { icon: PackageCheck, label: "100% Natural" },
-//   { icon: Truck,        label: "Free delivery available" },
+//   // { icon: PackageCheck, label: "100% Natural" },
+//   // { icon: Truck,        label: "Free delivery available" },
 //   { icon: ShieldCheck,  label: "Secure Checkout" },
 // ];
 
@@ -28,6 +28,11 @@
 
 // function isAuthenticated() {
 //   return !!localStorage.getItem("access_token");
+// }
+
+// // ─── Fires a delta event so Navbar badge updates INSTANTLY without an API call ─
+// function notifyCartDelta(delta) {
+//   window.dispatchEvent(new CustomEvent("cart-delta", { detail: { delta } }));
 // }
 
 // function CounterBadge({ count }) {
@@ -89,6 +94,7 @@
 //           color: "#888", margin: "2px 0 6px" }}>
 //           {item.weight} · {item.tag}
 //         </p>
+//         {/* Line total is always priceNum × quantity — derived from state */}
 //         <p style={{ fontFamily: "var(--font-heading)", fontSize: 17,
 //           color: "#1E5C2A", margin: 0 }}>
 //           ₹{(item.priceNum * item.quantity).toFixed(0)}
@@ -104,10 +110,11 @@
 //             justifyContent: "center", color: "#555" }}>
 //           <Minus size={14} strokeWidth={2.5} />
 //         </motion.button>
+//         {/* Key on quantity so AnimatePresence swaps instantly */}
 //         <AnimatePresence mode="wait">
 //           <motion.span key={item.quantity}
 //             initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-//             exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.15 }}
+//             exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }}
 //             style={{ fontFamily: "var(--font-heading)", fontSize: 15,
 //               color: "#111", minWidth: 28, textAlign: "center" }}>
 //             {item.quantity}
@@ -222,11 +229,6 @@
 //   );
 // }
 
-// // ─── helper to notify navbar instantly ───────────────────────────────────────
-// function notifyCartChanged() {
-//   window.dispatchEvent(new CustomEvent("cart-updated"));
-// }
-
 // export default function Cart() {
 //   const navigate = useNavigate();
 
@@ -242,6 +244,10 @@
 //   const titleRef    = useRef(null);
 //   const titleInView = useInView(titleRef, { once: true });
 
+//   // ─── Per-item debounce timers: itemId → { timer, pendingQty } ─────────────
+//   // We accumulate all fast clicks locally, then flush ONE request after 400ms idle
+//   const pendingRef = useRef({}); // { [cartItemId]: { timer, qty } }
+
 //   const fetchCart = useCallback(async () => {
 //     try {
 //       const res = await fetch(`${API}/api/cart/`, { headers: authHeaders() });
@@ -250,7 +256,12 @@
 //         return;
 //       }
 //       const data = await res.json();
-//       setCartItems(data.items || []);
+//       const items = data.items || [];
+//       setCartItems(items);
+
+//       // Sync navbar badge from server truth on load
+//       const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+//       window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: totalQty } }));
 //     } catch {
 //       setCartItems([]);
 //     } finally {
@@ -280,49 +291,95 @@
 //     return () => window.removeEventListener("auth-change", handleAuthChange);
 //   }, [fetchCart, showLoginPrompt]);
 
-//   // ── Qty change — optimistic UI + notify navbar immediately ───────────────
-//   const handleQty = async (cartItemId, delta) => {
-//     setCartItems(prev => prev.map(i =>
-//       i.id === cartItemId
-//         ? { ...i,
-//             quantity:  Math.max(1, i.quantity + delta),
-//             lineTotal: i.priceNum * Math.max(1, i.quantity + delta),
-//           }
-//         : i
-//     ));
-//     // ▼ tell Navbar to refresh count right now
-//     notifyCartChanged();
-
-//     await fetch(`${API}/api/cart/item/${cartItemId}/`, {
-//       method: "PATCH",
-//       headers: authHeaders(),
-//       body: JSON.stringify({ delta }),
+//   // ── Qty change — instant optimistic state + debounced single API call ──────
+// // ── Qty change — instant optimistic state + debounced single API call ──────
+// const handleQty = useCallback((cartItemId, delta) => {
+//   // 1. Update UI immediately — badge synced from state, not delta
+//   setCartItems(prev => {
+//     const updated = prev.map(i => {
+//       if (i.id !== cartItemId) return i;
+//       const newQty = Math.max(1, i.quantity + delta);
+//       return { ...i, quantity: newQty };
 //     });
-//   };
 
-//   // ── Remove item — optimistic UI + notify navbar immediately ─────────────
-//   const handleRemove = async (cartItemId) => {
-//     setCartItems(prev => prev.filter(i => i.id !== cartItemId));
-//     // ▼ tell Navbar to refresh count right now
-//     notifyCartChanged();
+//     // Sync navbar badge from the new total — always accurate
+//     const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
+//     window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
 
+//     return updated;
+//   });
+
+//   // 2. Debounce the API call
+//   const pending = pendingRef.current;
+//   if (pending[cartItemId]) {
+//     clearTimeout(pending[cartItemId].timer);
+//     pending[cartItemId].accumulated += delta;
+//   } else {
+//     pending[cartItemId] = { accumulated: delta };
+//   }
+
+//   pending[cartItemId].timer = setTimeout(async () => {
+//     const accumulated = pending[cartItemId].accumulated;
+//     delete pending[cartItemId];
+
+//     setCartItems(current => {
+//       const item = current.find(i => i.id === cartItemId);
+//       if (!item) return current;
+
+//       fetch(`${API}/api/cart/item/${cartItemId}/`, {
+//         method: "PATCH",
+//         headers: authHeaders(),
+//         body: JSON.stringify({ quantity: item.quantity }),
+//       }).catch(() => fetchCart());
+
+//       return current;
+//     });
+//   }, 400);
+// }, [fetchCart]);
+
+//   // ── Remove item — instant optimistic UI + immediate API call ─────────────
+// const handleRemove = useCallback(async (cartItemId) => {
+//   if (pendingRef.current[cartItemId]) {
+//     clearTimeout(pendingRef.current[cartItemId].timer);
+//     delete pendingRef.current[cartItemId];
+//   }
+
+//   setCartItems(prev => {
+//     const updated = prev.filter(i => i.id !== cartItemId);
+//     // Sync badge from remaining items
+//     const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
+//     window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
+//     return updated;
+//   });
+
+//   try {
 //     await fetch(`${API}/api/cart/item/${cartItemId}/`, {
 //       method: "DELETE",
 //       headers: authHeaders(),
 //     });
-//   };
+//   } catch {
+//     fetchCart();
+//   }
+// }, [fetchCart]);
+//   // ── Clear all — instant + immediate API call ──────────────────────────────
+//   const handleClearAll = useCallback(async () => {
+//     // Cancel all pending debounces
+//     Object.values(pendingRef.current).forEach(p => clearTimeout(p.timer));
+//     pendingRef.current = {};
 
-//   // ── Clear all — notify navbar immediately ────────────────────────────────
-//   const handleClearAll = async () => {
+//     // Tell navbar badge to go to 0
+//     window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: 0 } }));
 //     setCartItems([]);
-//     // ▼ tell Navbar to refresh count right now
-//     notifyCartChanged();
 
-//     await fetch(`${API}/api/cart/clear/`, {
-//       method: "DELETE",
-//       headers: authHeaders(),
-//     });
-//   };
+//     try {
+//       await fetch(`${API}/api/cart/clear/`, {
+//         method: "DELETE",
+//         headers: authHeaders(),
+//       });
+//     } catch {
+//       fetchCart();
+//     }
+//   }, [fetchCart]);
 
 //   const handleCheckoutClick = () => {
 //     if (cartItems.length === 0) return;
@@ -337,6 +394,7 @@
 //     setShowCheckout(true);
 //   };
 
+//   // ── All totals derived from cartItems state — always in sync ────────────
 //   const subtotal     = cartItems.reduce((s, i) => s + i.priceNum * i.quantity, 0);
 //   const discount     = promoApplied ? Math.round(subtotal * 0.1) : 0;
 //   const totalItems   = cartItems.reduce((s, i) => s + i.quantity, 0);
@@ -348,6 +406,8 @@
 //   };
 
 //   const handleCheckoutSuccess = () => {
+//     Object.values(pendingRef.current).forEach(p => clearTimeout(p.timer));
+//     pendingRef.current = {};
 //     setCartItems([]);
 //     setShowCheckout(false);
 //     setPromoApplied(false);
@@ -502,11 +562,12 @@
 
 //                 <div style={{ display: "flex", justifyContent: "space-between",
 //                   alignItems: "center", marginBottom: 20 }}>
-//                   <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#111" }}>Subtotal</span>
+//                   <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#111" }}>Total</span>
+//                   {/* AnimatePresence key on displayTotal so it animates on every change */}
 //                   <AnimatePresence mode="wait">
 //                     <motion.span key={displayTotal}
 //                       initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-//                       exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.2 }}
+//                       exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.15 }}
 //                       style={{ fontFamily: "var(--font-heading)", fontSize: 26, color: "#111" }}>
 //                       ₹{displayTotal.toFixed(0)}
 //                     </motion.span>
@@ -597,7 +658,7 @@
 //       <AnimatePresence>
 //         {showCheckout && (
 //           <CheckoutModal
-//             cartSubtotal={displayTotal} 
+//             cartSubtotal={displayTotal}
 //             discount={discount}
 //             onClose={() => setShowCheckout(false)}
 //             onSuccess={handleCheckoutSuccess}
@@ -611,6 +672,23 @@
 //     </>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -682,30 +760,31 @@ function CartRow({ item, onQty, onRemove, index }) {
   };
 
   return (
-    <motion.div ref={ref}
+    <motion.div ref={ref} className="cart-row"
       initial={{ opacity: 0, x: -50 }}
       animate={inView ? (removing ? { opacity: 0, x: 80, scale: 0.85 } : { opacity: 1, x: 0 }) : {}}
       transition={{ duration: removing ? 0.3 : 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
       style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px",
         borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#fff",
-        position: "relative", overflow: "hidden" }}
+        position: "relative", overflow: "hidden", flexWrap: "wrap", width: "100%",
+        boxSizing: "border-box" }}
     >
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
         background: item.bg, borderRadius: "4px 0 0 4px" }} />
 
-      <motion.div whileHover={{ rotate: -8, scale: 1.08 }}
+      <motion.div className="cart-row-img" whileHover={{ rotate: -8, scale: 1.08 }}
         transition={{ type: "spring", stiffness: 300, damping: 18 }}
         style={{ width: 72, height: 72, borderRadius: 12, background: item.bg,
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0, overflow: "hidden" }}>
         <img src={item.imgSrc} alt={item.name}
-          style={{ height: "90%", width: "auto", objectFit: "contain",
+          style={{ height: "90%", width: "auto", maxWidth: "100%", objectFit: "contain",
             filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }} />
       </motion.div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: "1 1 140px", minWidth: 0 }}>
         <p style={{ fontFamily: "var(--font-heading)", fontSize: 15,
-          color: "#111", margin: 0, letterSpacing: 0.3 }}>{item.name}</p>
+          color: "#111", margin: 0, letterSpacing: 0.3, overflowWrap: "anywhere" }}>{item.name}</p>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 12,
           color: "#888", margin: "2px 0 6px" }}>
           {item.weight} · {item.tag}
@@ -717,41 +796,44 @@ function CartRow({ item, onQty, onRemove, index }) {
         </p>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center",
-        border: "1.5px solid #eee", borderRadius: 50, overflow: "hidden" }}>
-        <motion.button whileTap={{ scale: 0.85 }}
-          onClick={() => onQty(item.id, -1)}
-          style={{ width: 34, height: 34, border: "none", background: "transparent",
-            cursor: "pointer", display: "flex", alignItems: "center",
-            justifyContent: "center", color: "#555" }}>
-          <Minus size={14} strokeWidth={2.5} />
-        </motion.button>
-        {/* Key on quantity so AnimatePresence swaps instantly */}
-        <AnimatePresence mode="wait">
-          <motion.span key={item.quantity}
-            initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }}
-            style={{ fontFamily: "var(--font-heading)", fontSize: 15,
-              color: "#111", minWidth: 28, textAlign: "center" }}>
-            {item.quantity}
-          </motion.span>
-        </AnimatePresence>
-        <motion.button whileTap={{ scale: 0.85 }}
-          onClick={() => onQty(item.id, 1)}
-          style={{ width: 34, height: 34, border: "none", background: "transparent",
-            cursor: "pointer", display: "flex", alignItems: "center",
-            justifyContent: "center", color: "#555" }}>
-          <Plus size={14} strokeWidth={2.5} />
+      <div className="cart-row-controls" style={{ display: "flex", alignItems: "center",
+        gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center",
+          border: "1.5px solid #eee", borderRadius: 50, overflow: "hidden" }}>
+          <motion.button className="qty-btn" whileTap={{ scale: 0.85 }}
+            onClick={() => onQty(item.id, -1)}
+            style={{ width: 34, height: 34, border: "none", background: "transparent",
+              cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", color: "#555" }}>
+            <Minus size={14} strokeWidth={2.5} />
+          </motion.button>
+          {/* Key on quantity so AnimatePresence swaps instantly */}
+          <AnimatePresence mode="wait">
+            <motion.span key={item.quantity}
+              initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }}
+              style={{ fontFamily: "var(--font-heading)", fontSize: 15,
+                color: "#111", minWidth: 28, textAlign: "center" }}>
+              {item.quantity}
+            </motion.span>
+          </AnimatePresence>
+          <motion.button className="qty-btn" whileTap={{ scale: 0.85 }}
+            onClick={() => onQty(item.id, 1)}
+            style={{ width: 34, height: 34, border: "none", background: "transparent",
+              cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", color: "#555" }}>
+            <Plus size={14} strokeWidth={2.5} />
+          </motion.button>
+        </div>
+
+        <motion.button whileHover={{ scale: 1.15, color: "#E8192C" }} whileTap={{ scale: 0.9 }}
+          onClick={handleRemove}
+          style={{ border: "none", background: "transparent", cursor: "pointer",
+            color: "#bbb", padding: 6, display: "flex", alignItems: "center",
+            transition: "color 0.2s" }}>
+          <Trash2 size={17} />
         </motion.button>
       </div>
-
-      <motion.button whileHover={{ scale: 1.15, color: "#E8192C" }} whileTap={{ scale: 0.9 }}
-        onClick={handleRemove}
-        style={{ border: "none", background: "transparent", cursor: "pointer",
-          color: "#bbb", padding: 6, display: "flex", alignItems: "center",
-          transition: "color 0.2s" }}>
-        <Trash2 size={17} />
-      </motion.button>
     </motion.div>
   );
 }
@@ -791,6 +873,7 @@ function CheckoutLoginPrompt({ onLoginClick }) {
         position: "fixed", inset: 0, zIndex: 1000,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)",
+        padding: "16px", boxSizing: "border-box",
       }}
     >
       <motion.div
@@ -800,7 +883,7 @@ function CheckoutLoginPrompt({ onLoginClick }) {
         style={{
           background: "#fff", borderRadius: 24, padding: "40px 32px",
           maxWidth: 420, width: "90%", textAlign: "center",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)", boxSizing: "border-box",
         }}
       >
         <div style={{
@@ -908,75 +991,75 @@ export default function Cart() {
   }, [fetchCart, showLoginPrompt]);
 
   // ── Qty change — instant optimistic state + debounced single API call ──────
-// ── Qty change — instant optimistic state + debounced single API call ──────
-const handleQty = useCallback((cartItemId, delta) => {
-  // 1. Update UI immediately — badge synced from state, not delta
-  setCartItems(prev => {
-    const updated = prev.map(i => {
-      if (i.id !== cartItemId) return i;
-      const newQty = Math.max(1, i.quantity + delta);
-      return { ...i, quantity: newQty };
+  const handleQty = useCallback((cartItemId, delta) => {
+    // 1. Update UI immediately — badge synced from state, not delta
+    setCartItems(prev => {
+      const updated = prev.map(i => {
+        if (i.id !== cartItemId) return i;
+        const newQty = Math.max(1, i.quantity + delta);
+        return { ...i, quantity: newQty };
+      });
+
+      // Sync navbar badge from the new total — always accurate
+      const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
+      window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
+
+      return updated;
     });
 
-    // Sync navbar badge from the new total — always accurate
-    const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
-    window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
+    // 2. Debounce the API call
+    const pending = pendingRef.current;
+    if (pending[cartItemId]) {
+      clearTimeout(pending[cartItemId].timer);
+      pending[cartItemId].accumulated += delta;
+    } else {
+      pending[cartItemId] = { accumulated: delta };
+    }
 
-    return updated;
-  });
+    pending[cartItemId].timer = setTimeout(async () => {
+      const accumulated = pending[cartItemId].accumulated;
+      delete pending[cartItemId];
 
-  // 2. Debounce the API call
-  const pending = pendingRef.current;
-  if (pending[cartItemId]) {
-    clearTimeout(pending[cartItemId].timer);
-    pending[cartItemId].accumulated += delta;
-  } else {
-    pending[cartItemId] = { accumulated: delta };
-  }
+      setCartItems(current => {
+        const item = current.find(i => i.id === cartItemId);
+        if (!item) return current;
 
-  pending[cartItemId].timer = setTimeout(async () => {
-    const accumulated = pending[cartItemId].accumulated;
-    delete pending[cartItemId];
+        fetch(`${API}/api/cart/item/${cartItemId}/`, {
+          method: "PATCH",
+          headers: authHeaders(),
+          body: JSON.stringify({ quantity: item.quantity }),
+        }).catch(() => fetchCart());
 
-    setCartItems(current => {
-      const item = current.find(i => i.id === cartItemId);
-      if (!item) return current;
-
-      fetch(`${API}/api/cart/item/${cartItemId}/`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({ quantity: item.quantity }),
-      }).catch(() => fetchCart());
-
-      return current;
-    });
-  }, 400);
-}, [fetchCart]);
+        return current;
+      });
+    }, 400);
+  }, [fetchCart]);
 
   // ── Remove item — instant optimistic UI + immediate API call ─────────────
-const handleRemove = useCallback(async (cartItemId) => {
-  if (pendingRef.current[cartItemId]) {
-    clearTimeout(pendingRef.current[cartItemId].timer);
-    delete pendingRef.current[cartItemId];
-  }
+  const handleRemove = useCallback(async (cartItemId) => {
+    if (pendingRef.current[cartItemId]) {
+      clearTimeout(pendingRef.current[cartItemId].timer);
+      delete pendingRef.current[cartItemId];
+    }
 
-  setCartItems(prev => {
-    const updated = prev.filter(i => i.id !== cartItemId);
-    // Sync badge from remaining items
-    const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
-    window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
-    return updated;
-  });
-
-  try {
-    await fetch(`${API}/api/cart/item/${cartItemId}/`, {
-      method: "DELETE",
-      headers: authHeaders(),
+    setCartItems(prev => {
+      const updated = prev.filter(i => i.id !== cartItemId);
+      // Sync badge from remaining items
+      const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
+      window.dispatchEvent(new CustomEvent("cart-sync", { detail: { count: newTotal } }));
+      return updated;
     });
-  } catch {
-    fetchCart();
-  }
-}, [fetchCart]);
+
+    try {
+      await fetch(`${API}/api/cart/item/${cartItemId}/`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+    } catch {
+      fetchCart();
+    }
+  }, [fetchCart]);
+
   // ── Clear all — instant + immediate API call ──────────────────────────────
   const handleClearAll = useCallback(async () => {
     // Cancel all pending debounces
@@ -1044,13 +1127,14 @@ const handleRemove = useCallback(async (cartItemId) => {
 
   return (
     <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        style={{ minHeight: "100vh", background: "#F5EFD6", paddingBottom: 60 }}>
+      <motion.div className="cart-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        style={{ minHeight: "100vh", background: "#F5EFD6", paddingBottom: 60,
+          width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box" }}>
 
         <div ref={titleRef}
           style={{ background: "#FFD700", padding: "32px 5% 24px",
-            position: "relative", overflow: "hidden" }}>
-          <svg style={{ position: "absolute", top: 0, right: 0, pointerEvents: "none" }}
+            position: "relative", overflow: "hidden", boxSizing: "border-box" }}>
+          <svg style={{ position: "absolute", top: 0, right: 0, pointerEvents: "none", maxWidth: "100%" }}
             width={200} height={120} viewBox="0 0 200 120">
             {Array.from({ length: 10 }).map((_, i) => {
               const a = (i / 10) * 180 + 180;
@@ -1066,8 +1150,8 @@ const handleRemove = useCallback(async (cartItemId) => {
           <motion.div initial={{ opacity: 0, x: -40 }}
             animate={titleInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(38px, 5vw, 48px)",
+            style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(32px, 8vw, 48px)",
               color: "#111", margin: 0, letterSpacing: -2, lineHeight: 1 }}>Your Cart</h1>
             {totalItems > 0 && <CounterBadge count={totalItems} />}
           </motion.div>
@@ -1087,7 +1171,7 @@ const handleRemove = useCallback(async (cartItemId) => {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
           style={{ display: "flex", justifyContent: "center", gap: "5%",
-            background: "#111", padding: "12px 5%", flexWrap: "wrap" }}>
+            background: "#111", padding: "12px 5%", flexWrap: "wrap", boxSizing: "border-box" }}>
           {PERKS.map(({ icon: Icon, label }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <Icon size={15} color="#FFD700" strokeWidth={2} />
@@ -1099,11 +1183,11 @@ const handleRemove = useCallback(async (cartItemId) => {
         </motion.div>
 
         <div className="cart-grid"
-          style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 5% 0",
-            display: "grid", gridTemplateColumns: "1fr minmax(280px, 360px)",
-            gap: 28, alignItems: "start" }}>
+          style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "36px 5% 0",
+            display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 360px)",
+            gap: 28, alignItems: "start", boxSizing: "border-box" }}>
 
-          <div>
+          <div style={{ minWidth: 0 }}>
             {cartItems.length === 0 ? (
               <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden" }}>
                 <EmptyCart onShop={() => navigate("/")} />
@@ -1111,8 +1195,9 @@ const handleRemove = useCallback(async (cartItemId) => {
             ) : (
               <motion.div style={{ background: "#fff", borderRadius: 16,
                 overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
-                <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #f0f0f0",
-                  display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div className="cart-header-row" style={{ padding: "16px 20px 12px", borderBottom: "1px solid #f0f0f0",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  flexWrap: "wrap", gap: 8 }}>
                   <p style={{ fontFamily: "var(--font-heading)", fontSize: 16, color: "#111", margin: 0 }}>
                     {totalItems} Item{totalItems !== 1 ? "s" : ""}
                   </p>
@@ -1140,7 +1225,8 @@ const handleRemove = useCallback(async (cartItemId) => {
                 style={{ marginTop: 16, width: "100%", padding: "16px 20px",
                   border: "2px dashed #ccc", borderRadius: 14, background: "transparent",
                   cursor: "pointer", display: "flex", alignItems: "center",
-                  justifyContent: "center", gap: 8, transition: "border-color 0.2s" }}>
+                  justifyContent: "center", gap: 8, transition: "border-color 0.2s",
+                  boxSizing: "border-box" }}>
                 <Plus size={18} color="#888" />
                 <span style={{ fontFamily: "var(--font-body)", fontSize: 14,
                   color: "#888", fontWeight: 600 }}>Add more products</span>
@@ -1148,7 +1234,7 @@ const handleRemove = useCallback(async (cartItemId) => {
             )}
           </div>
 
-          <div style={{ alignSelf: "start" }}>
+          <div style={{ alignSelf: "start", minWidth: 0, width: "100%" }}>
             <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden",
               boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
 
@@ -1159,7 +1245,7 @@ const handleRemove = useCallback(async (cartItemId) => {
                   color: "#FFD700", margin: 0, letterSpacing: 1 }}>ORDER SUMMARY</p>
               </div>
 
-              <div style={{ padding: "20px 20px 0" }}>
+              <div style={{ padding: "20px 20px 0", boxSizing: "border-box" }}>
                 {[
                   { label: "Subtotal", value: `₹${subtotal.toFixed(0)}`, color: "#111" },
                   { label: `Discount${promoApplied ? " (MACHOZ10)" : ""}`,
@@ -1168,46 +1254,49 @@ const handleRemove = useCallback(async (cartItemId) => {
                   { label: "Delivery", value: "Calculated at checkout", color: "#888" },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between",
-                    alignItems: "center", marginBottom: 14 }}>
+                    alignItems: "center", marginBottom: 14, gap: 8 }}>
                     <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "#666" }}>{label}</span>
-                    <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color }}>{value}</span>
+                    <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color,
+                      textAlign: "right" }}>{value}</span>
                   </div>
                 ))}
 
                 <div style={{ borderTop: "1.5px solid #f0f0f0", margin: "4px 0 16px" }} />
 
                 <div style={{ display: "flex", justifyContent: "space-between",
-                  alignItems: "center", marginBottom: 20 }}>
+                  alignItems: "center", marginBottom: 20, gap: 8 }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#111" }}>Total</span>
                   {/* AnimatePresence key on displayTotal so it animates on every change */}
                   <AnimatePresence mode="wait">
                     <motion.span key={displayTotal}
                       initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                       exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.15 }}
-                      style={{ fontFamily: "var(--font-heading)", fontSize: 26, color: "#111" }}>
+                      style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(20px, 6vw, 26px)", color: "#111" }}>
                       ₹{displayTotal.toFixed(0)}
                     </motion.span>
                   </AnimatePresence>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8,
+                <div className="promo-row" style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                  <div className="promo-input-wrap" style={{ flex: "1 1 140px", minWidth: 0, display: "flex", alignItems: "center", gap: 8,
                     border: `1.5px solid ${promoError ? "#E8192C" : promoApplied ? "#1E5C2A" : "#ddd"}`,
-                    borderRadius: 50, padding: "0 14px", transition: "border-color 0.2s" }}>
+                    borderRadius: 50, padding: "0 14px", transition: "border-color 0.2s",
+                    boxSizing: "border-box" }}>
                     <Tag size={14} color={promoApplied ? "#1E5C2A" : "#aaa"} />
                     <input value={promoCode}
                       onChange={e => { setPromoCode(e.target.value); setPromoError(false); }}
                       placeholder="Promo code" disabled={promoApplied}
                       style={{ border: "none", outline: "none", background: "transparent",
                         fontFamily: "var(--font-body)", fontSize: 13, color: "#111",
-                        width: "100%", padding: "11px 0" }} />
+                        width: "100%", minWidth: 0, padding: "11px 0" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}
                     onClick={applyPromo} disabled={promoApplied}
                     style={{ fontFamily: "var(--font-heading)", fontSize: 12, letterSpacing: 1,
                       background: promoApplied ? "#1E5C2A" : "#111", color: "#fff",
                       border: "none", borderRadius: 50, padding: "0 18px",
-                      cursor: "pointer", whiteSpace: "nowrap", opacity: promoApplied ? 0.7 : 1 }}>
+                      cursor: "pointer", whiteSpace: "nowrap", opacity: promoApplied ? 0.7 : 1,
+                      flexShrink: 0 }}>
                     {promoApplied ? "APPLIED ✓" : "APPLY"}
                   </motion.button>
                 </div>
@@ -1221,7 +1310,7 @@ const handleRemove = useCallback(async (cartItemId) => {
                 )}
               </div>
 
-              <div style={{ padding: "0 20px 20px" }}>
+              <div style={{ padding: "0 20px 20px", boxSizing: "border-box" }}>
                 <motion.button
                   whileHover={{ scale: 1.03, boxShadow: "0 10px 32px rgba(232,25,44,0.4)" }}
                   whileTap={{ scale: 0.97 }}
@@ -1233,14 +1322,15 @@ const handleRemove = useCallback(async (cartItemId) => {
                     cursor: cartItems.length === 0 ? "not-allowed" : "pointer",
                     opacity: cartItems.length === 0 ? 0.5 : 1,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxShadow: "0 6px 24px rgba(232,25,44,0.28)", transition: "box-shadow 0.2s" }}>
+                    boxShadow: "0 6px 24px rgba(232,25,44,0.28)", transition: "box-shadow 0.2s",
+                    boxSizing: "border-box" }}>
                   GO TO CHECKOUT <ArrowRight size={18} />
                 </motion.button>
               </div>
             </div>
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-              style={{ marginTop: 16, display: "flex", justifyContent: "center", gap: 20 }}>
+              style={{ marginTop: 16, display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" }}>
               {PERKS.map(({ icon: Icon, label }) => (
                 <div key={label} style={{ display: "flex", flexDirection: "column",
                   alignItems: "center", gap: 4 }}>
@@ -1283,7 +1373,34 @@ const handleRemove = useCallback(async (cartItemId) => {
       </AnimatePresence>
 
       <style>{`
-        @media (max-width: 700px) { .cart-grid { grid-template-columns: 1fr !important; } }
+        html, body { overflow-x: hidden; max-width: 100%; }
+        * { box-sizing: border-box; }
+
+        @media (max-width: 860px) {
+          .cart-grid { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 480px) {
+          .cart-row { padding: 14px 14px !important; gap: 12px !important; }
+          .cart-row-img { width: 56px !important; height: 56px !important; }
+        }
+
+        @media (max-width: 340px) {
+          .cart-grid { padding-left: 4% !important; padding-right: 4% !important; }
+          .cart-row { padding: 10px 10px !important; gap: 8px !important; }
+          .cart-row-img { width: 44px !important; height: 44px !important; border-radius: 8px !important; }
+          .cart-row-controls { gap: 4px !important; }
+          .cart-row-controls .qty-btn { width: 26px !important; height: 26px !important; }
+          .cart-header-row { padding: 12px 12px 10px !important; }
+          .cart-header-row p { font-size: 14px !important; }
+          .cart-header-row button { font-size: 11px !important; }
+        }
+
+        @media (max-width: 360px) {
+          .promo-row { flex-direction: column !important; }
+          .promo-row .promo-input-wrap { flex: none !important; width: 100% !important; height: 44px !important; }
+          .promo-row button { width: 100% !important; padding: 12px 0 !important; }
+        }
       `}</style>
     </>
   );
